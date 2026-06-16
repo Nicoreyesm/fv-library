@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Best Practice Library — FullView Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#f5a623;--gold-glow:rgba(245,166,35,.18);
+  --bg:#0a0a0c;--surface:#16161c;--card:#1c1c24;
+  --border:#26262f;--border2:#32323e;
+  --text:#e8e8f0;--muted:#5a5a70;--muted2:#3e3e50;
+  --radius:8px;--pos-color:var(--gold);
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;line-height:1.5;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 50% at 0% 0%,rgba(80,40,140,.25) 0%,transparent 60%),radial-gradient(ellipse 40% 40% at 100% 100%,rgba(30,30,80,.2) 0%,transparent 50%)}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* HEADER */
+.header{display:flex;align-items:center;gap:16px;padding:16px 32px;border-bottom:1px solid var(--border);background:rgba(10,10,12,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.fv-logo{display:flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer}
+.fv-wordmark{display:flex;flex-direction:column;line-height:1}
+.fv-name{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-.01em}
+.fv-sub{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;margin-top:1px}
+.hdiv{width:1px;height:28px;background:var(--border2);margin:0 4px}
+.hsub{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.hright{margin-left:auto;display:flex;align-items:center;gap:10px}
+.ts-badge{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:10px;color:var(--muted)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;animation:blink 2s ease-in-out infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.icon-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 11px;font-size:11px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;display:flex;align-items:center;gap:5px}
+.icon-btn:hover{border-color:var(--gold);color:var(--gold)}
+.auth-btn{border-radius:6px;padding:6px 14px;font-size:11px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;border:none}
+.auth-btn.disconnected{background:var(--gold);color:#000}
+.auth-btn.disconnected:hover{background:#e09520}
+.auth-btn.connected{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3)}
+.auth-btn.connected:hover{background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.3)}
+
+/* ACTION BAR */
+.action-bar{display:flex;align-items:center;gap:12px;padding:14px 32px 0;flex-wrap:wrap}
+.action-toggle{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.abtn{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 22px;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s}
+.abtn.on{background:var(--gold-glow);color:var(--gold)}
+.search-wrap{flex:1;max-width:320px;position:relative}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.gsearch{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'Barlow',sans-serif;font-size:13px;padding:7px 12px 7px 32px;outline:none;transition:border-color .2s}
+.gsearch:focus{border-color:var(--gold)}
+.gsearch::placeholder{color:var(--muted)}
+.view-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-left:auto}
+.vbtn{background:none;border:none;padding:7px 10px;cursor:pointer;color:var(--muted);transition:all .2s;display:flex;align-items:center}
+.vbtn.on{background:var(--gold-glow);color:var(--gold)}
+
+/* TABS */
+.twrap{padding:12px 32px 0;overflow-x:auto;scrollbar-width:none}
+.twrap::-webkit-scrollbar{display:none}
+.tabs{display:flex;gap:3px;white-space:nowrap}
+.tab{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px 10px;border-radius:7px 7px 0 0;border:1px solid transparent;border-bottom:none;cursor:pointer;color:var(--muted);background:transparent;transition:all .2s;position:relative}
+.tab::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:transparent;transition:background .2s}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.tab.active{color:var(--text);background:var(--surface);border-color:var(--border)}
+.tab.active::after{background:var(--pos-color)}
+.cnt{display:inline-block;margin-left:5px;font-size:9px;padding:1px 6px;border-radius:8px;background:var(--border);color:var(--muted);font-family:'Barlow',sans-serif;font-weight:600;vertical-align:middle}
+.tab.active .cnt{background:var(--pos-color);color:#000}
+
+/* PANEL */
+.panel{background:var(--surface);border:1px solid var(--border);border-top:none;margin:0 32px 32px;border-radius:0 0 12px 12px;flex:1;display:flex;flex-direction:column}
+.poshead{display:flex;align-items:center;gap:16px;padding:20px 28px 16px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.poshead::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--pos-color-alpha,transparent) 0%,transparent 60%);pointer-events:none}
+.pos-icon-wrap{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:var(--pos-bg,rgba(245,166,35,.1));border:1px solid var(--pos-border,rgba(245,166,35,.2));position:relative;z-index:1}
+.pos-info{position:relative;z-index:1}
+.pos-name{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:.01em;color:var(--pos-color)}
+.pos-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.pos-right{margin-left:auto;display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+.action-pill{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:5px;border:1px solid}
+.action-pill.off{color:#10b981;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.08)}
+.action-pill.def{color:#ef4444;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.08)}
+.progress-wrap{text-align:right}
+.progress-label{font-size:10px;color:var(--muted);margin-bottom:4px}
+.progress-bar{width:120px;height:3px;background:var(--border2);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--pos-color);border-radius:2px;transition:width .4s ease}
+.carea{flex:1;overflow-y:auto;padding:22px 28px 28px}
+
+/* DASHBOARD */
+.dash-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;letter-spacing:.02em;color:#fff;margin-bottom:4px}
+.dash-title span{color:var(--gold)}
+.dash-sub{font-size:12px;color:var(--muted);margin-bottom:24px}
+.pos-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.pos-card{border-radius:10px;border:1px solid var(--border);background:var(--card);padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.pos-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--c-alpha) 0%,transparent 60%);pointer-events:none}
+.pos-card:hover{transform:translateY(-2px);border-color:var(--c);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.pos-card-icon{font-size:24px;margin-bottom:10px}
+.pos-card-name{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--c);margin-bottom:8px}
+.pos-card-bar{height:2px;background:var(--border2);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.pos-card-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.pos-card-stats{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+.pos-card-count{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#fff;line-height:1}
+.pos-card-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+
+/* CATEGORIES */
+.catsec{margin-bottom:20px}
+.cathead{display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;user-select:none;padding:10px 14px;border-radius:7px;border:1px solid var(--border);background:var(--card);transition:border-color .2s}
+.cathead:hover{border-color:var(--pos-color)}
+.catdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cattitle{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.catcount{font-size:10px;color:var(--muted);margin-left:2px}
+.cat-spacer{flex:1}
+.catchev{font-size:9px;color:var(--muted);transition:transform .2s}
+.catsec.collapsed .catchev{transform:rotate(-90deg)}
+.catsec.collapsed .vgrid,.catsec.collapsed .vlist{display:none}
+
+/* SUBCATEGORY */
+.subcatsec{margin-bottom:14px;padding-left:12px;border-left:2px solid var(--border)}
+.subcattitle{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding:4px 0}
+
+/* VIDEO GRID */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.vlist{display:flex;flex-direction:column;gap:6px}
+.vrow{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:7px;border:1px solid var(--border);background:var(--card);text-decoration:none;transition:all .18s}
+.vrow:hover{border-color:var(--pos-color);background:rgba(255,255,255,.02)}
+.vrow-thumb{width:56px;height:32px;border-radius:5px;background:#0a0a12;overflow:hidden;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center}
+.vrow-thumb img{width:100%;height:100%;object-fit:cover}
+.vrow-thumb-fallback{font-size:16px;opacity:.3;position:absolute}
+.vrow-mini-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);opacity:0;transition:opacity .15s}
+.vrow:hover .vrow-mini-play{opacity:1}
+.vrow-tri{width:0;height:0;border:4px solid transparent;border-left:7px solid #fff;margin-left:2px}
+.vrow-info{flex:1;min-width:0}
+.vrow-title{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vrow-cat{font-size:10px;color:var(--muted);margin-top:2px}
+.vrow-badge{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:4px;flex-shrink:0}
+.vrow-seen{font-size:14px;flex-shrink:0;opacity:.4;cursor:pointer;transition:opacity .2s;background:none;border:none;color:inherit}
+.vrow-seen:hover,.vrow-seen.on{opacity:1}
+
+/* VIDEO CARD */
+.vcard{background:var(--card);border:1px solid var(--border);border-radius:9px;overflow:hidden;transition:transform .18s,border-color .18s,box-shadow .18s;cursor:pointer;text-decoration:none;display:block;position:relative}
+.vcard:hover{transform:translateY(-2px);border-color:var(--pos-color);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.vthumb{position:relative;aspect-ratio:16/9;background:#08080f;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.vthumb img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.vcard:hover .vthumb img{transform:scale(1.04)}
+.vthumb-fallback{font-size:40px;opacity:.07;position:absolute}
+.vplay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);opacity:0;transition:opacity .2s}
+.vcard:hover .vplay{opacity:1}
+.vplay-ring{width:42px;height:42px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;transform:scale(.9);transition:transform .2s}
+.vcard:hover .vplay-ring{transform:scale(1)}
+.vtri{width:0;height:0;border:7px solid transparent;border-left:12px solid #000;margin-left:3px}
+.vbadge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.8);border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 7px;text-transform:uppercase;color:var(--pos-color)}
+.vatag{position:absolute;top:8px;right:8px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:.04em;padding:2px 6px;text-transform:uppercase}
+.vatag.off{background:rgba(16,185,129,.2);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+.vatag.def{background:rgba(239,68,68,.2);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.vseen-btn{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.7);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;font-size:12px;opacity:0;transition:opacity .2s;color:#fff}
+.vcard:hover .vseen-btn,.vcard.seen .vseen-btn{opacity:1}
+.vcard.seen .vthumb::after{content:'';position:absolute;inset:0;background:rgba(16,185,129,.07);pointer-events:none}
+.vcard.seen .vbadge{background:rgba(16,185,129,.22);color:#10b981}
+.vbody{padding:10px 12px 12px}
+.vtitle{font-size:12px;font-weight:500;line-height:1.4;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:7px}
+.vtags{display:flex;gap:5px;flex-wrap:wrap}
+.vtag-pos{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:4px}
+
+/* STATES */
+.estate{display:flex;flex-direction:column;align-items:center;padding:48px 20px;text-align:center;color:var(--muted);gap:12px}
+.eicon{font-size:36px;opacity:.25}
+.etitle{font-size:15px;font-weight:600;color:var(--text);font-family:'Barlow Condensed',sans-serif;letter-spacing:.03em}
+.emsg{font-size:12px;max-width:320px;line-height:1.6}
+.elink{margin-top:6px;font-size:11px;color:var(--gold);text-decoration:none;border:1px solid rgba(245,166,35,.3);border-radius:6px;padding:5px 14px;transition:background .2s;display:inline-flex;align-items:center;gap:5px}
+.elink:hover{background:rgba(245,166,35,.08)}
+
+.loading-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:16px;color:var(--muted)}
+.spinner{width:32px;height:32px;border:2.5px solid var(--border);border-top-color:var(--pos-color);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;font-weight:500;color:var(--text)}
+.loading-sub{font-size:11px;opacity:.6}
+.loading-bar-wrap{width:240px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.loading-bar{height:100%;background:var(--pos-color);border-radius:2px;transition:width .3s ease}
+
+/* AUTH SCREEN */
+.auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 28px;text-align:center;gap:20px;flex:1}
+.auth-icon{font-size:52px;margin-bottom:4px}
+.auth-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:.02em}
+.auth-desc{font-size:13px;color:var(--muted);max-width:340px;line-height:1.7}
+.auth-connect-btn{background:var(--gold);color:#000;border:none;border-radius:8px;padding:13px 30px;font-size:13px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+.auth-connect-btn:hover{background:#e09520;transform:translateY(-1px);box-shadow:0 6px 20px rgba(245,166,35,.3)}
+.auth-note{font-size:10px;color:var(--muted2);max-width:280px;line-height:1.6}
+
+/* CHIPS */
+.cats-section{margin-top:20px}
+.cats-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.cats-grid{display:flex;flex-wrap:wrap;gap:6px}
+.cat-chip{display:inline-flex;align-items:center;gap:5px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:5px 11px;border-radius:6px;background:var(--card);border:1px solid var(--border);color:var(--muted);text-decoration:none;transition:all .18s}
+.cat-chip:hover{border-color:var(--gold);color:var(--gold);background:rgba(245,166,35,.06);transform:translateY(-1px)}
+.cat-chip.no-link{opacity:.4;cursor:default;pointer-events:none}
+
+/* LIB */
+.libblock{margin-bottom:28px}
+.libposhead{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.libposdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.libpostitle{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.libposcount{margin-left:auto;font-size:10px;color:var(--muted)}
+
+.footer{text-align:center;font-size:10px;color:var(--muted2);padding-bottom:18px;letter-spacing:.03em}
+
+@media(max-width:700px){
+  .header{padding:12px 16px;flex-wrap:wrap}
+  .action-bar{padding:12px 16px 0;flex-wrap:wrap}
+  .twrap{padding:10px 16px 0}
+  .panel{margin:0 16px 20px}
+  .carea,.poshead{padding-left:16px;padding-right:16px}
+  .vgrid{grid-template-columns:1fr}
+  .search-wrap{max-width:100%;width:100%}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="header">
+  <div class="fv-logo" onclick="goHome()">
+    <svg width="30" height="34" viewBox="0 0 32 36" fill="none">
+      <path d="M20 2L4 20H16L12 34L28 16H16L20 2Z" fill="white"/>
+      <path d="M20 2L4 20H16L12 34L28 16H16L20 2Z" fill="url(#bg)" opacity=".55"/>
+      <defs><linearGradient id="bg" x1="4" y1="2" x2="28" y2="34" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#f5a623"/><stop offset="100%" stop-color="white" stop-opacity="0"/></linearGradient></defs>
+    </svg>
+    <div class="fv-wordmark">
+      <span class="fv-name">FullView</span>
+      <span class="fv-sub">Best Practice</span>
+    </div>
+  </div>
+  <div class="hdiv"></div>
+  <span class="hsub" id="hdr-section">Best Practice</span>
+  <div class="hright">
+    <div class="ts-badge" id="ts-badge" style="display:none"><span class="live-dot"></span><span id="ts">—</span></div>
+    <button class="icon-btn" id="refresh-btn" onclick="loadFromDrive(true)" style="display:none">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Actualizar
+    </button>
+    <button class="auth-btn disconnected" id="auth-btn" onclick="handleAuth()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      Conectar con Google
+    </button>
+  </div>
+</header>
+
+<div class="action-bar" id="action-bar" style="display:none">
+  <div class="action-toggle">
+    <button class="abtn on" id="bon" onclick="setAction('off')">⚡ Offensive</button>
+    <button class="abtn" id="bde" onclick="setAction('def')">🛡️ Defensive</button>
+  </div>
+  <div class="search-wrap">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="gsearch" id="fsearch" type="text" placeholder="Buscar video o categoría…" oninput="doFilter(this.value)">
+  </div>
+  <div class="view-toggle">
+    <button class="vbtn on" id="vgrid-btn" onclick="setView('grid')" title="Cuadrícula">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+    </button>
+    <button class="vbtn" id="vlist-btn" onclick="setView('list')" title="Lista">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="twrap" id="tabs-wrap" style="display:none"><div class="tabs" id="tabs"></div></div>
+
+<div class="panel">
+  <div class="poshead" id="poshead" style="display:none">
+    <div class="pos-icon-wrap" id="picon">📚</div>
+    <div class="pos-info">
+      <div class="pos-name" id="pname">Biblioteca</div>
+      <div class="pos-desc" id="pdesc">Todos los videos</div>
+    </div>
+    <div class="pos-right">
+      <div class="action-pill off" id="apill">Offensive</div>
+      <div class="progress-wrap" id="progress-wrap" style="display:none">
+        <div class="progress-label" id="progress-label">0 / 32 categorías</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="carea" id="carea"></div>
+</div>
+<div class="footer" id="foot"></div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const CLIENT_ID = '340641428548-945v88bifulnqmne0o5qgqubn6ombgv6.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+const TOKEN_KEY = 'fvp_gtoken_v2';
+const CACHE_KEY = 'fvp_cache_v3';
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 horas
+
+// ── PALETTE ───────────────────────────────────────────────────────────────────
+const C={lib:'#f5a623',gk:'#f5a623',rb:'#3b82f6',rcb:'#10b981',lcb:'#14b8a6',lb:'#06b6d4',dm:'#8b5cf6',am:'#a855f7',rw:'#f97316',lw:'#ef4444',cf:'#e11d48'};
+
+// ── CATEGORIES ────────────────────────────────────────────────────────────────
+const OFF_CATS=["01. Depth Positioning","02. Width Positioning","03. Relationship with Marker","04. Movement to Receive","05. Combination to Receive","06. Movement Type","07. Movement from Final Unit","08. In Behind","09. Attacking the Box","10. No Pressure Reception","11. Under Pressure Reception","12. Aerial Reception","13. Receiving While Moving","14. Passing Quality","15. Carry","16. Ball Progression","17. Key Pass","18. Cross","19. Cross Actions","20. Box Threat","21. Penalty Area Reception","22. Box Reception Type","23. Dribbling","24. Deception","25. Dribbling Outcome","26. Link Up","27. Link Up Outcome","28. Combination Play","29. Finish Type","30. Finish","31. Poaching","32. Aerial Threat"];
+const DEF_CATS=["01. Active Defence","02. Clearance Type","03. Territorial Dominance","04. Aerial Defence"];
+
+// ── FOLDER IDs ────────────────────────────────────────────────────────────────
+const CAT_FOLDERS={
+  gk:{off:{"01. Depth Positioning":"1AXNTb_tygrVNsv3EMTI4SHBQeDOew3Lj","02. Width Positioning":"1Bgb2h537myJYG4kh0BHVxZpm59DQHC9Y","03. Relationship with Marker":"1YipwSy0xzZmKq9-pMBTcm0G5vMzRTV7y","04. Movement to Receive":"1cwzhpXrHC72uWcqn2ThCPRiv_A9YUgps","05. Combination to Receive":"18ghN_CHHio8t6Jg9oWdY2U7uEY8INbyt","06. Movement Type":"1H1EtpchWEgSRRurSz5E9a8X0PP-CrmVJ","07. Movement from Final Unit":"1HYJFg7nfjgfh5MxXhEvRN4YdmtXTIP3e","08. In Behind":"1z8oLNY_inius1K4bboXB3d-WEkHTGe2V","09. Attacking the Box":"1-80nmgyd98qZ_jvYhIi2UoJ6YDw9aZx7","10. No Pressure Reception":"1vk_eegbeTOR3oVDtkOOxMqcfDC2ZtrX8","11. Under Pressure Reception":"1yhhityIOoB6ies9wO1SFxN02H_qT-o7h","12. Aerial Reception":"1v0lDNgbYmfnkOEo4jX1Kzys8QxplAJF7","13. Receiving While Moving":"1sU-KXoyXcAH0VVs6OcdmOnaOm1khMxoe","14. Passing Quality":"1--9ipMEO3LFLu6CYzjXvy1Lf6Oja2HE3","15. Carry":"1NPn_aND2Qp3F6jyM4V-cdI2vROtI95in","16. Ball Progression":"1I8LN-q3OM3HxfvcoCozNq7YYaDSoDF1D","17. Key Pass":"1cl0poUbNL4UvBRxLqSgPji5Qn6_Ndrea","18. Cross":"1dH9pmMRd9tRqnruyPHOM5ebV_F8CZdAg","19. Cross Actions":"1Cpb1CzGXMMgGiJxU7o9Z1fFuPb3yH7z6","20. Box Threat":"1UualUl5T3ueeOVFQipsFzqbZTCHXfxab","21. Penalty Area Reception":"1TKA_UeEQec1aC7igK15q06p3dhn1RN8m","22. Box Reception Type":"1yXXpwz33chuUJKjpjcB1npYY0nJFKUG8","23. Dribbling":"16hxoDFZPFxLCmnyOjA1InxjKbvTuUHnc","24. Deception":"11RzU0oErehVCNTW7BnXR6tOaEEsfK-YY","25. Dribbling Outcome":"18CHZBTMvU_4-SMt1Ihp_c4YHXpQDSX3T","26. Link Up":"1KLU5h19eIRMC4rLUNn_ItG8zXqIZVJ6r","27. Link Up Outcome":"1D6cs1TZYpVFUma7IqI-UFNnzZCDo0CfM","28. Combination Play":"1hrSpoGl3l7oIivPWks1HGIw1VU_rOPh7","29. Finish Type":"1Lf3f4qwP28YQpC0qe2jQP5GizDDKBex5","30. Finish":"1L4Ax14jPIOVztbSPDK2-zQeBYXdnsC5j","31. Poaching":"1ZRRQvcXmI_U_yADhakUmLS5A_Os4Nb0g","32. Aerial Threat":"1inPr4ANrlTA0mCdNpLwHElMIEyqNLKEn"},def:{"01. Active Defence":"1CG9hbKu5vC5eB9qa39Y3UVSJX3R_dAQC","02. Clearance Type":"1k3AU4FOw-MijE4uYAlz6-sanHn_zlyrD","03. Territorial Dominance":"1cXoygBHKkH6HDzcwCeOvjAbCBAcsHyIu","04. Aerial Defence":"1wTng3zFmz_69sQQ3qkjCyJ63iAv3cDnz"}},
+  rb:{off:{"01. Depth Positioning":"1u1DrY303Zds5g-S55Q6ZEkT_fGPebgcx","02. Width Positioning":"1rcOpULu5FpNTJaj7WjmJj8IMrG328A_7","03. Relationship with Marker":"1TRNevwfSLfbgNjXPKfG7b-Tc5GS3aHA9","04. Movement to Receive":"1zqzM97KfX3uJrbMnOACuQYZ7qQoXPCvc","05. Combination to Receive":"1zYQJ4OeVxZ-oJQPDtCJy3I-CWlA9jVYI","06. Movement Type":"1dJ7N9-WaN0gWY3FJ2cR6wZP4ZfYuMyFR","07. Movement from Final Unit":"1g6K9wXJh21lF39StuPE6Je4M6YNjj_gJ","08. In Behind":"1RZMuEOaHSKJBmrVxBcwYPWuSHKkqG01i","09. Attacking the Box":"1ku9Hhga2Baw6kbAAd24HaewllozoAw4T","10. No Pressure Reception":"1dltlm8NxN-MSjK3UFVCo4Ld0bNaNIKb0","11. Under Pressure Reception":"1OgfMKL2GKgG3b5LEV1pUSh4t23Mc_u-e","12. Aerial Reception":"1D548RAsOe2URfmOdmWSGumzYfRfhw1mR","13. Receiving While Moving":"168M4IkU7E0C7srZ5qIB39zrXGzS7cajl","14. Passing Quality":"1Wr8VgSJxoJpemufl0VZkttOzo-RHx8Ha","15. Carry":"10PXucSSTMJ7k97FteIOjVsf_Qy2EGzGS","16. Ball Progression":"1QhbQINVjXsgwQY6Sh5q1PlWr0_I66uoW","17. Key Pass":"1dwg35ZQ6sIIq4DPXZ8Kgywd-i_IGI-VR","18. Cross":"1ZpdZnUMUoBXZ_drqVkCwfAnMcxNQ5_nb","19. Cross Actions":"1La2d76YUpwutaCWS3BxuigyAS2cjpUcs","20. Box Threat":"13EtWyGAckoareGT077f1J-FsgpoSLUwf","21. Penalty Area Reception":"1ZOLY2XKnjxNW7-wLsScrHHlwWhLITKJ2","22. Box Reception Type":"12AC_LVaXNXkaCXVdw2Fh4NzpvcSqvfSL","23. Dribbling":"1CWQKPqNQsxGmosoC0nVsj1x2hF8HSPgz","24. Deception":"1uNd4ZgR5YQkWZ9Yhw-tFLJyrnpKf4259","25. Dribbling Outcome":"17w0cGWgv7U8daYxkPkBjp-w_Rkw0iVaP","26. Link Up":"1DPjPQcrLIzhhZXvFOOD5GMCJjrHza5ov","27. Link Up Outcome":"1mbEthWPe5zsOTk09dPK7mlukHvs1B_1_","28. Combination Play":"1_5c5bPosomD0vqO9mpKv-ewV1NbTz0Ni","29. Finish Type":"1sb-QQvPD0F-1AbGmr7ykN3ZTnFnvI4Hr","30. Finish":"1N5uC1PAjSgEvYwFUAYObj2Fa2ZxkIWzB","31. Poaching":"1aXYZ3te34sHb1AH_iOJtuTuAuFugyYjm","32. Aerial Threat":"1wCTb2hXKj08JWJa6OOTkQYQFDf7kmdfu"},def:{}},
+  rcb:{off:{"01. Depth Positioning":"1FrCruFtJx6JBgLH4WZcxQuK77q9vMIZy","02. Width Positioning":"1YNrVuSFsuIcwI6gRW0_u9SjxkVC1y8HY","03. Relationship with Marker":"1yyg60rbkfW8z7z5zpRFIyYiBl1cW38bC","04. Movement to Receive":"1nR0rBjfOX_1P0cvaVbqzKQfIcGs6QMos","05. Combination to Receive":"1cb7s9VRYkdqOGDP-mS6k-ZCAHUdO7CA9","06. Movement Type":"1wJeuymgmAMfM8jGBihUS542F-CaXrqLI","07. Movement from Final Unit":"17ZUHUuIkJHDDnh4rzvkS5czSRZbNkd02","08. In Behind":"1V8m3iysgE2J1y_YaAL_3SJcuVRMCZztE","09. Attacking the Box":"1EJDYZVN5Pd0fnDcaWsv6wHyQFxrXpFRa","10. No Pressure Reception":"1EGryFjvKsgNzOcSS5ufr8HtLPeTLH8YL","11. Under Pressure Reception":"1t-RLiUDHq5Mpneu9_yRgd_Rpe6rurJUh","12. Aerial Reception":"1P2TdEizFSKFhEAOiFpQXeCH9r2cAxfgR","13. Receiving While Moving":"12XW2DQ2t1M5uc01RN_14S3cu1B1h53Ae","14. Passing Quality":"1YkmRrvVKseYejJ4yFt8nBvexAiTzPBsZ","15. Carry":"1JZ9qoM3jyV0UyHkGm9mHVvDguBuE2XBT","16. Ball Progression":"1Z1_c9sla_pXVgXTzwOoFG9Y3mvWOzlrx","17. Key Pass":"13miz7dfqSg6CUn1cvZfgU8PKxOGJPKsW","18. Cross":"1Y0L5RztDvMpD5jbeaZ_LlyjOpMlpuEma","19. Cross Actions":"1R0E_ZjNNEArog5a9SvAH5XNlYstb0dDm","20. Box Threat":"1BPcoCdKzwBhuwGj_EKAncP5ueHk4Bsbt","21. Penalty Area Reception":"1tf1P4TDB6HrB8bTvSHwLufGxQHFriqYj","22. Box Reception Type":"1K1Yj-TpBPtrkNOyUao390oT0XMpJoOKX","23. Dribbling":"1OS5MIvsKiUPtWUmLaUhMzSWpERtaywQ5","24. Deception":"17GATVGylKEk0J1sgJkqHgXYdhHiI4sQP","25. Dribbling Outcome":"1lNF1kpq6wxlJK0XONR1CmYyPLqQD-HmW","26. Link Up":"1oC6pl1hr_H_M-E5G18K09p0gAjnv3P37","27. Link Up Outcome":"13EK5SurxrSrrRVdyLZb9rzlr0iTlqWlK","28. Combination Play":"1JMtHxbKJuApvkBZMofihVLjXwIhXoSxe","29. Finish Type":"1L_X-FA7hA0qDGJ4bHGxtD9xUnuEmTxva","30. Finish":"1kmxzeSFL6b6BMpdVJkuoapWAiwtaK6rg","31. Poaching":"1lL39fGxmLV2A3AhYIVoGMJPY0wVF7F9T","32. Aerial Threat":"14PnvicQ0KQ4Hls9UIe0fHKhJezgOArCk"},def:{}},
+  lcb:{off:{"01. Depth Positioning":"1iENkjqJKyf6OTTOS8FmszAdjbPAsGK6j","02. Width Positioning":"1HpnCAvV0RxOjF6fM4z96f1I8ShS8kS0r","03. Relationship with Marker":"1P5LP_rHN-xp08avKlXGXVmV1VMiC4NUF","04. Movement to Receive":"1H5NzRcxPM8eyIQOktuh1PC8lVZoDRKWi","05. Combination to Receive":"1FapiezNyULxmeeUvbtAFaL2CNptTHS4L","06. Movement Type":"1PKfvBrYMcqC64l7P0Opn_1Pz2XqSztB2","07. Movement from Final Unit":"1O5Wi0FopFoQn9PHyXN4ePJ-DVAWvnF49","08. In Behind":"1xbD3ez6wbE04fozgl-3V9YBGyCARby3z","09. Attacking the Box":"1LJYV6PdBvlzcIwdboEnjUPNAG0-nn2Fy","10. No Pressure Reception":"1i2JrVofZcTtwkypcCPs3DRFgl4RomT2y","11. Under Pressure Reception":"1UacChve_KNPK8Ig7mqcj9-LuNr45ScHf","12. Aerial Reception":"14YsBg54mJ2Ll3uBSBp2OspSloT-QjkVj","13. Receiving While Moving":"1vxJi1n9s355z7_e6zIoskhhN_J3DHnid","14. Passing Quality":"1tt30Ui9BATcVNKzy0KdULNXIf-Fc2Ctx","15. Carry":"1fpWEctpdfx0ulEWKjeu5ccbG5g_YmMc5","16. Ball Progression":"1ZJVHsXI2vk_yKs2WsWb4LrBrBpqE3Nfi","17. Key Pass":"1UHVxXStl441Ei6HxtHAf23uZGQX-vzfg","18. Cross":"1rhJqyuPP7svukhElmW0OZn1xUzMCQwj6","19. Cross Actions":"1nXT1DCa3RwE9y5hStJ78S8pYD6bCsupZ","20. Box Threat":"1lUGY21qBS5VX9A7tc6LcnqdBpH6iy8Ai","21. Penalty Area Reception":"1K_YX_BwjEuZPEnMI-6EgJLWBT-MTg9Tl","22. Box Reception Type":"1k0KrbBP19CDw7v1j0FGy9P-i1nbD56v7","23. Dribbling":"1-QXG42Nsmq8QY4IK1anVjy3Q49j4x_X9","24. Deception":"1h2m2WUo_ZnwzjybR6MCGCplbcXBBfSCR","25. Dribbling Outcome":"17UwlYs9Fu1Oq_ZvZ3xm3IY2ipR7iHZrU","26. Link Up":"1lfeZQ3CBpY4Xy-7ZBvzEbh7mMoVKaKEs","27. Link Up Outcome":"1JCT_7HN0MgeY8yNDBhgIPrrftz7VYEDj","28. Combination Play":"14ublNZky3TE9FwLXxAIVeptv1ixEUawB","29. Finish Type":"14LIVlkp6aW8qt7LgC3Us5VIZfkY4jIHI","30. Finish":"1-qCNSLVjtIugvkIJTk54WxQqwqUiKXpD","31. Poaching":"1mJ8sh9Obv-nLfYKY9aY2Cu4b0CMEOoEV","32. Aerial Threat":"1E91rThl5jwb26z_xA3wMuhWIctYITmBE"},def:{}},
+  lb:{off:{"01. Depth Positioning":"1BkOG_IlOvCJSzazw8piRa88XWlXXuAv0","02. Width Positioning":"1jX7rOvwrl4uXOiIuciTSFaL_mwbpIsHy","03. Relationship with Marker":"1znn06depcUi3QEx_aqezRz5GgLOOFvjg","04. Movement to Receive":"1U007rYzk7iHR0GXpFLKH71sl-1OtzCdT","05. Combination to Receive":"1EEfSR5cYRASMm2gZU6_1_Q4XdyEbS9B-","06. Movement Type":"1v1yeqj5l5oQ0mzoEynHCy1zjnpoRn0w9","07. Movement from Final Unit":"1UPfBAxkUjHjwSfFvpn0GgOI5KA5fJwS2","08. In Behind":"1NroJrtodb1JEARtQCzCymBGdKGS6-rRD","09. Attacking the Box":"1ApYi5FXtt5XCfHXHL6DvpQXFRyg7A4QE","10. No Pressure Reception":"1wY81wJWISWtQBbPZ1VtsZNNK-2W9CpLd","11. Under Pressure Reception":"1Wz4MKp_nF0F_32VAkqu-PpMnEaXXJRC9","12. Aerial Reception":"1ILjSDXxnsLBgCMHTPjOcZ8PvhoIgjc_0","13. Receiving While Moving":"1QA-paBp9YYtYcqPYFyUpwGTcxQ6MtSQr","14. Passing Quality":"1cdFtGNEACEXHEG-3k5r90di6cMzCyDXM","15. Carry":"1_0DcdpHvke1XWlBFzLsCwBPvR1cAVyBX","16. Ball Progression":"1OgpK-0aQstdSqNr5vQCuK3PC5-XJrdKJ","17. Key Pass":"1ikuqr1nLbmB53juhgmZOY4Wtq8LkRuBO","18. Cross":"1dONoMH-rOK2GKHlVy6UObmDSye5SbwDz","19. Cross Actions":"1E_jN2cGreLeN_RjZvTCubcEg762XVC83","20. Box Threat":"1iEPufeDaJwF4JkMi5JAv54A8crHX9YRJ","21. Penalty Area Reception":"10aBccaGZNoJioDeBEBXs8MCE20c-AE4U","22. Box Reception Type":"18jhpr2GCwokV-NpHmuyicxUrpXCjfzqT","23. Dribbling":"1FEg_qYIU3HUoXdog-Re73qEiZA50Q3N0","24. Deception":"1XUEB6ZFhEbArS4qG-TlFLNh76AkPTKFf","25. Dribbling Outcome":"1uFywZTyg27QRsJfeQLcN12WHZJYm225D","26. Link Up":"1XJDOFxGJe1YzA_kUCzSX6LTyF3ADIQzS","27. Link Up Outcome":"1YTpIjW4_UxYvqTrM_eDrFdNXCvy1dSnB","28. Combination Play":"121aP6pgsSQUmDD6Gt6CIqfMXywow83Fy","29. Finish Type":"1qDZ5DSQ35lJPr6nTG4VtnC8ufWIp1BJ8","30. Finish":"1ln2kDy1WBzXXVqDUUhkXWqdAWJcEn1yM","31. Poaching":"1ft8ju8S2sRNRmQZc23OWnF-U92o88Ri4","32. Aerial Threat":"1pULg50FOZrvOWioYjrmpVPridno2iTtv"},def:{}},
+  dm:{off:{},def:{}},am:{off:{},def:{}},rw:{off:{},def:{}},lw:{off:{},def:{}},cf:{off:{},def:{}}
+};
+
+// ── POSITIONS ─────────────────────────────────────────────────────────────────
+const POSITIONS=[
+  {key:'lib',label:'Biblioteca',short:'All',icon:'📚',color:C.lib},
+  {key:'gk', label:'01. Goalkeeper',       short:'GK', icon:'🧤',color:C.gk, off:'1sc0UrOMToP3N_qiTxpQ5dppJeN2zdtsg',def:'1G5FcfngVvuipv1F6hc5C82FoFPNPAzGB'},
+  {key:'rb', label:'02. Right Back',        short:'RB', icon:'⚡',color:C.rb, off:'1XKQe3_C55tbh5tSa3bvG6RB6xaRfCtyJ',def:'1dGjfMHVx0lsOiDD15hVZlAd-3piyNEQm'},
+  {key:'rcb',label:'03. Right Centre Back', short:'RCB',icon:'🛡️',color:C.rcb,off:'1ZgcQuyGi4_QUmnsOElZ7ARuO0f6ZIkmc',def:'1DUf8AjSezRh_L760q65JYABsGF-Cm9zC'},
+  {key:'lcb',label:'04. Left Centre Back',  short:'LCB',icon:'🛡️',color:C.lcb,off:'1AgaTMMUYRKj74-utL-SvmZWcvHK1fPmx',def:'17Pom5nRmp0IG7hk4ovKKzc-NMXw28BcG'},
+  {key:'lb', label:'05. Left Back',         short:'LB', icon:'⚡',color:C.lb, off:'1-M2uZ36QovIai9zk7aHN1_Z2e7XsSubt',def:'1dkIIE6gw0u5fKIVuplBftLvjgdSdLcHZ'},
+  {key:'dm', label:'06. Defensive MF',      short:'DM', icon:'⚙️',color:C.dm, off:'1u23t8BZdXYlbhGuNeNZW49N6LeL8F-mv',def:null},
+  {key:'am', label:'07. Attacking MF',      short:'AM', icon:'🎯',color:C.am, off:'1O9J4g8eVMcOCI6vI9PEHZkPKGUIWeTWh',def:'1JWqvXUw7iNymKpsJcel_38S92cKGMbys'},
+  {key:'rw', label:'08. Right Winger',      short:'RW', icon:'🔥',color:C.rw, off:'10WIRWYvmhhoC4xlFiOCey9uaqu7h2swS',def:'1o_9J8fbTf0mG1ssdov-RjSiSAK6OSw76'},
+  {key:'lw', label:'09. Left Winger',       short:'LW', icon:'🔥',color:C.lw, off:'1ygj8p2ZASFQw_BLVUXs-Le4ySukxB2Ll',def:'1hUUU_0OJYb00s5aIT_a7cY6ljaXUlfg-'},
+  {key:'cf', label:'10. Centre Forward',    short:'CF', icon:'⚽',color:C.cf, off:'1nWLJgYo6gxyBlRp9Wh1zUdhP9-rPaGiJ',def:'1V7Mgri_j9AmKFgpzXwNnMpltAzzlx4IC'},
+];
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+// Structure: DATA[posKey][action][catName] = [{id, name, subcat}]
+const DATA={};
+POSITIONS.filter(p=>p.key!=='lib').forEach(p=>{
+  DATA[p.key]={off:{},def:{}};
+  OFF_CATS.forEach(c=>{DATA[p.key].off[c]=[]});
+  DEF_CATS.forEach(c=>{DATA[p.key].def[c]=[]});
+});
+
+// ── SEEN ──────────────────────────────────────────────────────────────────────
+const SEEN_KEY='fvp_seen_v1';
+function loadSeen(){try{return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)||'[]'))}catch{return new Set()}}
+function saveSeen(s){try{localStorage.setItem(SEEN_KEY,JSON.stringify([...s]))}catch{}}
+const seen=loadSeen();
+function toggleSeen(id,e){
+  e.preventDefault();e.stopPropagation();
+  seen.has(id)?seen.delete(id):seen.add(id);saveSeen(seen);
+  document.querySelectorAll(`[data-vid="${id}"]`).forEach(el=>{
+    el.classList.toggle('seen',seen.has(id));
+    const btn=el.querySelector('.vseen-btn,.vrow-seen');
+    if(btn)btn.textContent=seen.has(id)?'✓':'○';
+  });
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let activePos='lib',activeAction='off',filterText='',viewMode='grid';
+let accessToken=null,tokenExpiry=0;
+
+const $=id=>document.getElementById(id);
+const driveUrl=id=>`https://drive.google.com/file/d/${id}/view`;
+const driveFolderUrl=id=>`https://drive.google.com/drive/folders/${id}`;
+const thumbUrl=id=>`https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+const extLink=`<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+
+function setAccent(c){
+  document.documentElement.style.setProperty('--pos-color',c);
+  document.documentElement.style.setProperty('--pos-bg',`color-mix(in srgb,${c} 10%,transparent)`);
+  document.documentElement.style.setProperty('--pos-border',`color-mix(in srgb,${c} 25%,transparent)`);
+  document.documentElement.style.setProperty('--pos-color-alpha',`color-mix(in srgb,${c} 7%,transparent)`);
+}
+function tsStr(){const n=new Date();return n.toLocaleDateString('es-CL',{day:'2-digit',month:'short'})+' · '+n.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})}
+function extractMD(n){const m=(n||'').match(/MD\s*(\d+)/i);return m?`MD${m[1]}`:''}
+function totalVids(posKey,action){
+  if(posKey==='lib')return POSITIONS.filter(p=>p.key!=='lib').reduce((s,p)=>s+totalVids(p.key,action),0);
+  return Object.values(DATA[posKey]?.[action]||{}).reduce((s,v)=>s+v.length,0);
+}
+function catsWithContent(posKey,action){return Object.values(DATA[posKey]?.[action]||{}).filter(v=>v.length>0).length}
+function totalCats(action){return action==='off'?OFF_CATS.length:DEF_CATS.length}
+function goHome(){switchPos('lib',C.lib)}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GOOGLE AUTH
+// ══════════════════════════════════════════════════════════════════════════════
+function handleAuth(){
+  if(accessToken&&Date.now()<tokenExpiry){
+    if(confirm('¿Desconectar tu cuenta de Google?')){
+      accessToken=null;tokenExpiry=0;
+      try{localStorage.removeItem(TOKEN_KEY)}catch{}
+      updateAuthBtn();showAuthScreen();
+    }
+    return;
+  }
+  startOAuth();
+}
+
+function startOAuth(){
+  const params=new URLSearchParams({
+    client_id:CLIENT_ID,
+    redirect_uri:`https://nicoreyesm.github.io/fv-library/best_practice_library.html`,
+    response_type:'token',
+    scope:SCOPES,
+    prompt:'select_account'
+  });
+  window.location.href=`https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+}
+
+function parseTokenFromHash(){
+  const params=new URLSearchParams(window.location.hash.substring(1));
+  const token=params.get('access_token');
+  const expiresIn=parseInt(params.get('expires_in')||'3600');
+  if(token){
+    accessToken=token;
+    tokenExpiry=Date.now()+(expiresIn-60)*1000;
+    try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token,expiry:tokenExpiry}))}catch{}
+    history.replaceState(null,'',window.location.pathname+window.location.search);
+    return true;
+  }
+  return false;
+}
+
+function loadStoredToken(){
+  try{
+    const s=JSON.parse(localStorage.getItem(TOKEN_KEY)||'null');
+    if(s&&s.expiry>Date.now()+60000){accessToken=s.token;tokenExpiry=s.expiry;return true}
+  }catch{}
+  return false;
+}
+
+function updateAuthBtn(){
+  const btn=$('auth-btn');
+  const connected=accessToken&&Date.now()<tokenExpiry;
+  btn.className=`auth-btn ${connected?'connected':'disconnected'}`;
+  btn.innerHTML=connected
+    ?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Conectado`
+    :`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Conectar con Google`;
+  $('refresh-btn').style.display=connected?'flex':'none';
+  $('ts-badge').style.display=connected?'flex':'none';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DRIVE API — lista recursiva (nivel cat → subcats → videos)
+// ══════════════════════════════════════════════════════════════════════════════
+async function driveGet(url){
+  const res=await fetch(url,{headers:{Authorization:`Bearer ${accessToken}`}});
+  if(res.status===401){accessToken=null;tokenExpiry=0;try{localStorage.removeItem(TOKEN_KEY)}catch{}updateAuthBtn();throw new Error('token_expired')}
+  return res.json();
+}
+
+async function listChildren(folderId,videosOnly=false){
+  const q=videosOnly
+    ?`'${folderId}' in parents and mimeType contains 'video/'`
+    :`'${folderId}' in parents`;
+  const url=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType)&pageSize=200&orderBy=name`;
+  const data=await driveGet(url);
+  return data.files||[];
+}
+
+// Recursively get all video files under a folder, grouping by immediate subfolder name
+async function getVideosUnderFolder(folderId){
+  // First check for direct videos
+  const direct=await listChildren(folderId,true);
+  const result=[]; // [{id, name, subcat}]
+  direct.forEach(f=>result.push({id:f.id,name:f.name.replace(/\.[^.]+$/,''),subcat:null}));
+
+  // Then check subfolders
+  const allItems=await listChildren(folderId,false);
+  const subfolders=allItems.filter(f=>f.mimeType==='application/vnd.google-apps.folder');
+
+  await Promise.all(subfolders.map(async sf=>{
+    const vids=await listChildren(sf.id,true);
+    vids.forEach(f=>result.push({id:f.id,name:f.name.replace(/\.[^.]+$/,''),subcat:sf.name}));
+  }));
+
+  return result;
+}
+
+// ── LOAD FROM DRIVE ───────────────────────────────────────────────────────────
+async function loadFromDrive(forceRefresh=false){
+  if(!accessToken||Date.now()>=tokenExpiry){showAuthScreen();return}
+
+  // Try cache
+  if(!forceRefresh){
+    try{
+      const cached=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
+      if(cached&&cached.ts&&(Date.now()-cached.ts)<CACHE_TTL){
+        applyData(cached.data);
+        $('ts').textContent='Cache · '+new Date(cached.ts).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+        showUI();return;
+      }
+    }catch{}
+  }
+
+  // Build list of all category folders to fetch
+  const tasks=[];
+  POSITIONS.filter(p=>p.key!=='lib').forEach(pos=>{
+    ['off','def'].forEach(action=>{
+      const cats=action==='off'?OFF_CATS:DEF_CATS;
+      cats.forEach(cat=>{
+        const fid=(CAT_FOLDERS[pos.key]?.[action]||{})[cat];
+        if(fid) tasks.push({posKey:pos.key,action,cat,fid});
+      });
+    });
+  });
+
+  // Initialize snapshot
+  const snapshot={};
+  POSITIONS.filter(p=>p.key!=='lib').forEach(p=>{
+    snapshot[p.key]={off:{},def:{}};
+    OFF_CATS.forEach(c=>{snapshot[p.key].off[c]=[]});
+    DEF_CATS.forEach(c=>{snapshot[p.key].def[c]=[]});
+  });
+
+  // Show loading
+  $('carea').innerHTML=`<div class="loading-state">
+    <div class="spinner"></div>
+    <div class="loading-text">Cargando desde Drive…</div>
+    <div class="loading-bar-wrap"><div class="loading-bar" id="lbar" style="width:0%"></div></div>
+    <div class="loading-sub" id="lsub">0 / ${tasks.length} carpetas</div>
+  </div>`;
+  $('poshead').style.display='none';
+  $('action-bar').style.display='none';
+  $('tabs-wrap').style.display='none';
+
+  // Fetch in batches of 8
+  const BATCH=8;
+  let done=0;
+  for(let i=0;i<tasks.length;i+=BATCH){
+    const batch=tasks.slice(i,i+BATCH);
+    await Promise.all(batch.map(async({posKey,action,cat,fid})=>{
+      try{
+        const vids=await getVideosUnderFolder(fid);
+        snapshot[posKey][action][cat]=vids;
+      }catch(e){
+        if(e.message==='token_expired'){throw e}
+        snapshot[posKey][action][cat]=[];
+      }
+      done++;
+      const pct=Math.round(done/tasks.length*100);
+      const lb=document.getElementById('lbar');
+      const ls=document.getElementById('lsub');
+      if(lb)lb.style.width=pct+'%';
+      if(ls)ls.textContent=`${done} / ${tasks.length} carpetas`;
+    }));
+  }
+
+  // Cache and apply
+  try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),data:snapshot}))}catch{}
+  applyData(snapshot);
+  $('ts').textContent=tsStr();
+  showUI();
+}
+
+function applyData(snapshot){
+  POSITIONS.filter(p=>p.key!=='lib').forEach(p=>{
+    if(snapshot[p.key]){DATA[p.key]=snapshot[p.key]}
+  });
+}
+
+function showAuthScreen(){
+  $('poshead').style.display='none';
+  $('action-bar').style.display='none';
+  $('tabs-wrap').style.display='none';
+  $('carea').innerHTML=`<div class="auth-screen">
+    <div class="auth-icon">⚡</div>
+    <div class="auth-title">Best Practice Library</div>
+    <div class="auth-desc">Conecta tu cuenta de Google para cargar los videos automáticamente desde Drive. Solo necesita permiso de lectura.</div>
+    <button class="auth-connect-btn" onclick="handleAuth()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      Conectar con Google
+    </button>
+    <div class="auth-note">Solo acceso de lectura · no modifica ni elimina archivos · sesión guardada 1 hora</div>
+  </div>`;
+}
+
+function showUI(){
+  $('action-bar').style.display='flex';
+  $('tabs-wrap').style.display='block';
+  $('poshead').style.display='flex';
+  updateAuthBtn();
+  renderTabs();
+  const pos=POSITIONS.find(p=>p.key===activePos);
+  renderHeader(pos);
+  if(activePos==='lib')renderLib();else renderPos(pos);
+  scheduleRefresh();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════════════════════════
+function buildCard(v,pos){
+  const md=extractMD(v.name);
+  const s=seen.has(v.id);
+  const isOff=activeAction==='off';
+  return `<a class="vcard${s?' seen':''}" href="${driveUrl(v.id)}" target="_blank" rel="noopener" data-vid="${v.id}">
+    <div class="vthumb">
+      <img src="${thumbUrl(v.id)}" alt="" loading="lazy" onerror="this.style.display='none'">
+      <div class="vthumb-fallback">${pos.icon}</div>
+      <div class="vplay"><div class="vplay-ring"><div class="vtri"></div></div></div>
+      ${md?`<div class="vbadge">${md}</div>`:''}
+      <div class="vatag ${isOff?'off':'def'}">${isOff?'OFF':'DEF'}</div>
+      <button class="vseen-btn" onclick="toggleSeen('${v.id}',event)">${s?'✓':'○'}</button>
+    </div>
+    <div class="vbody">
+      <div class="vtitle">${v.name}</div>
+      <div class="vtags"><span class="vtag-pos" style="color:${pos.color};background:color-mix(in srgb,${pos.color} 12%,transparent);border:1px solid color-mix(in srgb,${pos.color} 25%,transparent)">${pos.short}</span>${v.subcat?`<span class="vtag-pos" style="background:var(--border);color:var(--muted);border:none">${v.subcat}</span>`:''}</div>
+    </div>
+  </a>`;
+}
+
+function buildRow(v,pos,catName){
+  const s=seen.has(v.id);
+  const isOff=activeAction==='off';
+  return `<a class="vrow" href="${driveUrl(v.id)}" target="_blank" rel="noopener" data-vid="${v.id}">
+    <div class="vrow-thumb">
+      <img src="${thumbUrl(v.id)}" alt="" loading="lazy" onerror="this.style.display='none'">
+      <div class="vrow-thumb-fallback">${pos.icon}</div>
+      <div class="vrow-mini-play"><div class="vrow-tri"></div></div>
+    </div>
+    <div class="vrow-info">
+      <div class="vrow-title">${v.name}</div>
+      <div class="vrow-cat">${catName}${v.subcat?' · '+v.subcat:''}</div>
+    </div>
+    <span class="vrow-badge ${isOff?'off':'def'}" style="background:${isOff?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)'};color:${isOff?'#10b981':'#ef4444'}">${isOff?'OFF':'DEF'}</span>
+    <button class="vrow-seen${s?' on':''}" onclick="toggleSeen('${v.id}',event)">${s?'✓':'○'}</button>
+  </a>`;
+}
+
+function renderVideos(vids,pos,catName=''){
+  if(!vids.length)return '';
+  // Group by subcat if present
+  const hasSubcats=vids.some(v=>v.subcat);
+  if(hasSubcats&&viewMode==='grid'){
+    const groups={};
+    vids.forEach(v=>{const k=v.subcat||'—';if(!groups[k])groups[k]=[];groups[k].push(v)});
+    return Object.entries(groups).map(([sub,vs])=>`
+      <div class="subcatsec">
+        <div class="subcattitle">${sub}</div>
+        <div class="vgrid">${vs.map(v=>buildCard(v,pos)).join('')}</div>
+      </div>`).join('');
+  }
+  return viewMode==='grid'
+    ?`<div class="vgrid">${vids.map(v=>buildCard(v,pos)).join('')}</div>`
+    :`<div class="vlist">${vids.map(v=>buildRow(v,pos,catName)).join('')}</div>`;
+}
+
+function chip(catName,posKey,action){
+  const fid=(CAT_FOLDERS[posKey]?.[action]||{})[catName];
+  return fid
+    ?`<a class="cat-chip" href="${driveFolderUrl(fid)}" target="_blank" rel="noopener">${catName}${extLink}</a>`
+    :`<span class="cat-chip no-link">${catName}</span>`;
+}
+
+function renderHeader(pos){
+  setAccent(pos.color);
+  $('picon').textContent=pos.icon;
+  $('pname').textContent=pos.label;$('pname').style.color=pos.color;
+  $('pdesc').textContent=pos.key==='lib'?'Todos los videos de todas las posiciones':`Acciones ${activeAction==='off'?'ofensivas':'defensivas'}`;
+  $('hdr-section').textContent=pos.key==='lib'?'Best Practice':pos.label;
+  const isOff=activeAction==='off';
+  $('apill').textContent=isOff?'Offensive':'Defensive';
+  $('apill').className=`action-pill ${isOff?'off':'def'}`;
+  const pw=$('progress-wrap');
+  if(pos.key!=='lib'){
+    pw.style.display='block';
+    const cats=catsWithContent(pos.key,activeAction);
+    const total=totalCats(activeAction);
+    $('progress-label').textContent=`${cats} / ${total} categorías`;
+    $('progress-fill').style.width=(total?Math.round(cats/total*100):0)+'%';
+  } else {pw.style.display='none'}
+}
+
+function renderTabs(){
+  $('tabs').innerHTML=POSITIONS.map(pos=>{
+    const n=totalVids(pos.key,activeAction);
+    const active=pos.key===activePos;
+    return `<div class="tab${active?' active':''}" style="${active?`--pos-color:${pos.color}`:''}" onclick="switchPos('${pos.key}','${pos.color}')">${pos.short}<span class="cnt">${n||'—'}</span></div>`;
+  }).join('');
+}
+
+function renderDashboard(){
+  const positions=POSITIONS.filter(p=>p.key!=='lib');
+  const totalAll=totalVids('lib',activeAction);
+  const catTotal=totalCats(activeAction);
+  const isOff=activeAction==='off';
+  $('carea').innerHTML=`
+    <div class="dash-title">${isOff?'⚡ <span>Offensive</span>':'🛡️ <span>Defensive</span>'} Actions</div>
+    <div class="dash-sub">${totalAll} videos · ${positions.length} posiciones · actualizado desde Drive</div>
+    <div class="pos-cards-grid">${positions.map(p=>{
+      const n=totalVids(p.key,activeAction);
+      const cats=catsWithContent(p.key,activeAction);
+      const pct=catTotal?Math.round(cats/catTotal*100):0;
+      return `<div class="pos-card" onclick="switchPos('${p.key}','${p.color}')" style="--c:${p.color};--c-alpha:color-mix(in srgb,${p.color} 8%,transparent)">
+        <div class="pos-card-icon">${p.icon}</div>
+        <div class="pos-card-name">${p.label}</div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px">
+          <div><div class="pos-card-count" style="color:${p.color}">${n}</div><div class="pos-card-label">videos</div></div>
+          <div style="text-align:right"><div class="pos-card-count" style="color:${p.color};font-size:15px">${cats}/${catTotal}</div><div class="pos-card-label">categorías</div></div>
+        </div>
+        <div class="pos-card-bar"><div class="pos-card-fill" style="width:${pct}%;background:${p.color}"></div></div>
+        <div class="pos-card-stats" style="margin-top:5px"><span>${pct}% completo</span><span style="color:${p.color}">Ver →</span></div>
+      </div>`;
+    }).join('')}</div>`;
+}
+
+function renderPos(pos){
+  const cats=DATA[pos.key]?.[activeAction]||{};
+  const catList=activeAction==='off'?OFF_CATS:DEF_CATS;
+  const q=filterText.toLowerCase();
+  const total=catList.reduce((s,c)=>(cats[c]||[]).length+s,0);
+
+  if(total===0){
+    const fid=activeAction==='off'?pos.off:pos.def;
+    $('carea').innerHTML=`<div class="estate">
+      <div class="eicon">${pos.icon}</div>
+      <div class="etitle">Sin videos aún</div>
+      <div class="emsg">Sube videos a las carpetas en Drive y haz clic en Actualizar.</div>
+      ${fid?`<a class="elink" href="${driveFolderUrl(fid)}" target="_blank" rel="noopener">Abrir carpeta en Drive ${extLink}</a>`:''}
+    </div>
+    <div class="cats-section">
+      <div class="cats-label">Categorías (${catList.length}) — clic para abrir en Drive</div>
+      <div class="cats-grid">${catList.map(c=>chip(c,pos.key,activeAction)).join('')}</div>
+    </div>`;
+    return;
+  }
+
+  const filtered=catList.map(c=>({c,vids:(cats[c]||[]).filter(v=>!q||v.name.toLowerCase().includes(q)||c.toLowerCase().includes(q)||(v.subcat&&v.subcat.toLowerCase().includes(q)))})).filter(x=>x.vids.length>0);
+  if(!filtered.length){$('carea').innerHTML=`<div class="estate"><div class="eicon">🔍</div><div class="etitle">Sin resultados</div><div class="emsg">Intenta con otro término.</div></div>`;return}
+
+  $('carea').innerHTML=filtered.map((x,i)=>`
+    <div class="catsec" id="cs${i}">
+      <div class="cathead" onclick="toggleCat(${i})">
+        <div class="catdot" style="background:${pos.color};box-shadow:0 0 6px ${pos.color}66"></div>
+        <div class="cattitle">${x.c}</div>
+        <span class="catcount">${x.vids.length} video${x.vids.length!==1?'s':''}</span>
+        <div class="cat-spacer"></div>
+        <div class="catchev">▼</div>
+      </div>
+      ${renderVideos(x.vids,pos,x.c)}
+    </div>`).join('');
+}
+
+function renderLib(){
+  const q=filterText.toLowerCase();
+  const totalAll=totalVids('lib',activeAction);
+  if(totalAll===0){renderDashboard();return}
+  let html='';
+  for(const pos of POSITIONS.filter(p=>p.key!=='lib')){
+    const allVids=Object.values(DATA[pos.key]?.[activeAction]||{}).flat();
+    const filtered=q?allVids.filter(v=>v.name.toLowerCase().includes(q)):allVids;
+    if(!filtered.length)continue;
+    html+=`<div class="libblock">
+      <div class="libposhead"><div class="libposdot" style="background:${pos.color};box-shadow:0 0 6px ${pos.color}77"></div><div class="libpostitle" style="color:${pos.color}">${pos.label}</div><div class="libposcount">${filtered.length} videos</div></div>
+      ${renderVideos(filtered,pos)}
+    </div>`;
+  }
+  if(!html)html=`<div class="estate"><div class="eicon">🔍</div><div class="etitle">Sin resultados</div></div>`;
+  $('carea').innerHTML=html;
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+function toggleCat(i){document.getElementById('cs'+i).classList.toggle('collapsed')}
+function doFilter(v){filterText=v;const pos=POSITIONS.find(p=>p.key===activePos);if(activePos==='lib')renderLib();else renderPos(pos)}
+function setView(m){viewMode=m;$('vgrid-btn').classList.toggle('on',m==='grid');$('vlist-btn').classList.toggle('on',m==='list');const pos=POSITIONS.find(p=>p.key===activePos);if(activePos==='lib')renderLib();else renderPos(pos)}
+function switchPos(key,color){
+  activePos=key;filterText='';$('fsearch').value='';
+  setAccent(color);renderTabs();
+  const pos=POSITIONS.find(p=>p.key===key);
+  renderHeader(pos);
+  if(key==='lib')renderLib();else renderPos(pos);
+}
+function setAction(a){
+  if(a===activeAction)return;activeAction=a;
+  $('bon').classList.toggle('on',a==='off');$('bde').classList.toggle('on',a==='def');
+  const pos=POSITIONS.find(p=>p.key===activePos);switchPos(activePos,pos.color);
+}
+
+function scheduleRefresh(){
+  const now=new Date(),next=new Date();next.setHours(19,0,0,0);if(now>=next)next.setDate(next.getDate()+1);
+  const ms=next-now,hh=Math.floor(ms/3600000),mm=Math.floor((ms%3600000)/60000);
+  $('foot').textContent=`Actualización automática desde Drive a las 19:00 · en ${hh}h ${mm}m`;
+  setTimeout(()=>{loadFromDrive(true)},ms);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+(function(){
+  if(parseTokenFromHash()){updateAuthBtn();loadFromDrive();return}
+  if(loadStoredToken()){updateAuthBtn();loadFromDrive();return}
+  updateAuthBtn();showAuthScreen();
+})();
+</script>
+</body>
+</html>
